@@ -3,24 +3,24 @@ package znet
 import (
 	"fmt"
 	"net"
-	"tpc-server/lex/ziface"
+	"tpc-server/src/lex/ziface"
 )
 
 type Connection struct {
-	Conn      *net.TCPConn
-	ConnID    uint32
-	isClosed  bool
-	handleAPI ziface.HandleFunc
-	ExitChan  chan bool
+	Conn     *net.TCPConn
+	ConnID   uint32
+	isClosed bool
+	ExitChan chan bool
+	Router   ziface.IRouter
 }
 
-func NewConnection(conn *net.TCPConn, connID uint32, callbackAPI ziface.HandleFunc) *Connection {
+func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) *Connection {
 	c := &Connection{
-		Conn:      conn,
-		ConnID:    connID,
-		handleAPI: callbackAPI,
-		isClosed:  false,
-		ExitChan:  make(chan bool, 1),
+		Conn:     conn,
+		ConnID:   connID,
+		Router:   router,
+		isClosed: false,
+		ExitChan: make(chan bool, 1),
 	}
 	return c
 }
@@ -32,16 +32,23 @@ func (c *Connection) StartReader() {
 
 	for {
 		buf := make([]byte, 512)
-		cnt, err := c.Conn.Read(buf)
+		_, err := c.Conn.Read(buf)
 		if err != nil {
 			fmt.Println("recv buf err", err)
 			continue
 		}
 
-		if err := c.handleAPI(c.Conn, buf, cnt); err != nil {
-			fmt.Println("ConnID = ", c.ConnID, " handle is error", err)
-			break
+		// get request
+		req := Request{
+			conn: c,
+			data: buf,
 		}
+
+		go func(request ziface.IRequest) {
+			c.Router.PreHandle(request)
+			c.Router.Handle(request)
+			c.Router.PostHandle(request)
+		}(&req)
 	}
 }
 

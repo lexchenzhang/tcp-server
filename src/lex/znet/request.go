@@ -1,6 +1,6 @@
 package znet
 
-import "tpc-server/lex/ziface"
+import "tpc-server/src/lex/ziface"
 
 type Request struct {
 	conn ziface.IConnection

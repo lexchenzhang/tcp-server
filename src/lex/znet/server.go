@@ -1,10 +1,9 @@
 package znet
 
 import (
-	"errors"
 	"fmt"
 	"net"
-	"tpc-server/lex/ziface"
+	"tpc-server/src/lex/ziface"
 )
 
 type Server struct {
@@ -16,6 +15,8 @@ type Server struct {
 	IP string
 	// port
 	Port int
+	// router
+	Router ziface.IRouter
 }
 
 func (s *Server) Start() {
@@ -33,12 +34,18 @@ func (s *Server) Serve() {
 	select {}
 }
 
+func (s *Server) AddRouter(router ziface.IRouter) {
+	s.Router = router
+	fmt.Println("Router added")
+}
+
 func NewServer(name string) ziface.IServer {
 	s := &Server{
 		Name:      name,
 		IPVersion: "tcp4",
 		IP:        "127.0.0.1",
 		Port:      8999,
+		Router:    nil,
 	}
 	return s
 }
@@ -56,7 +63,7 @@ func clientHanlder(s *Server) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("start Zinx server success")
+	fmt.Println("start TCP server success")
 	var cid uint32
 	cid = 0
 	// 3.clients hanlder
@@ -70,14 +77,7 @@ func clientHanlder(s *Server) {
 		fmt.Println("Accept ", remoteAddr)
 		// connect to client
 		// echo back (512)
-		connHandler := NewConnection(conn, cid, func(c *net.TCPConn, data []byte, cnt int) error {
-			fmt.Println("Conn Handler...")
-			if _, err := c.Write(data[:cnt]); err != nil {
-				fmt.Println("write back buf err", err)
-				return errors.New("callback to client error")
-			}
-			return nil
-		})
+		connHandler := NewConnection(conn, cid, s.Router)
 		cid++
 
 		go connHandler.Start()
