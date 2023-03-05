@@ -1,3 +1,3 @@
-module tpc-server
+module tcp-server
 
 go 1.18

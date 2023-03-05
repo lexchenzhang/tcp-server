@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"tpc-server/src/lex/ziface"
-	"tpc-server/src/lex/znet"
+	"tcp-server/src/lex/ziface"
+	"tcp-server/src/lex/znet"
 )
 
 // ping test - customized router
@@ -12,7 +12,7 @@ type PingRouter struct {
 }
 
 // test pre-handle
-func (this *PingRouter) PreHandle(request ziface.IRequest) {
+func (pr *PingRouter) PreHandle(request ziface.IRequest) {
 	fmt.Println("call router prehandle...")
 	_, err := request.GetConnection().GetTCPConnection().Write([]byte("before ping...\n"))
 	if err != nil {
@@ -21,7 +21,7 @@ func (this *PingRouter) PreHandle(request ziface.IRequest) {
 }
 
 // test handle
-func (this *PingRouter) Handle(request ziface.IRequest) {
+func (pr *PingRouter) Handle(request ziface.IRequest) {
 	fmt.Println("call router handle...")
 	_, err := request.GetConnection().GetTCPConnection().Write([]byte("ping ping ping\n"))
 	if err != nil {
@@ -30,7 +30,7 @@ func (this *PingRouter) Handle(request ziface.IRequest) {
 }
 
 // test post-handle
-func (this *PingRouter) PostHandle(request ziface.IRequest) {
+func (pr *PingRouter) PostHandle(request ziface.IRequest) {
 	fmt.Println("call router posthandle...")
 	_, err := request.GetConnection().GetTCPConnection().Write([]byte("after ping...\n"))
 	if err != nil {
@@ -39,7 +39,7 @@ func (this *PingRouter) PostHandle(request ziface.IRequest) {
 }
 
 func main() {
-	s := znet.NewServer("[server v0.3]")
+	s := znet.NewServer("[server v0.4]")
 	s.AddRouter(&PingRouter{})
 	s.Serve()
 }

@@ -1,6 +1,6 @@
 package znet
 
-import "tpc-server/src/lex/ziface"
+import "tcp-server/src/lex/ziface"
 
 type BaseRouter struct{}
 

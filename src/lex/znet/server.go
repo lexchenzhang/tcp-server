@@ -3,7 +3,8 @@ package znet
 import (
 	"fmt"
 	"net"
-	"tpc-server/src/lex/ziface"
+	"tcp-server/src/lex/utils"
+	"tcp-server/src/lex/ziface"
 )
 
 type Server struct {
@@ -20,7 +21,8 @@ type Server struct {
 }
 
 func (s *Server) Start() {
-	fmt.Printf("[Start] server Listening at IP :%s, Port %d \n", s.IP, s.Port)
+	fmt.Printf("[Zinx] Server Name : %s, listenner at IP : %s, Port:%d is starting\n", utils.GlobalObject.Name, utils.GlobalObject.Host, utils.GlobalObject.TcpPort)
+	fmt.Printf("[Zinx] Version %s\n", utils.GlobalObject.Version)
 	go clientHanlder(s)
 }
 
@@ -41,10 +43,10 @@ func (s *Server) AddRouter(router ziface.IRouter) {
 
 func NewServer(name string) ziface.IServer {
 	s := &Server{
-		Name:      name,
+		Name:      utils.GlobalObject.Name,
 		IPVersion: "tcp4",
-		IP:        "127.0.0.1",
-		Port:      8999,
+		IP:        utils.GlobalObject.Host,
+		Port:      utils.GlobalObject.TcpPort,
 		Router:    nil,
 	}
 	return s
