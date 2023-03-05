@@ -1,9 +1,10 @@
 package znet
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
-	"tcp-server/src/lex/utils"
 	"tcp-server/src/lex/ziface"
 )
 
@@ -26,23 +27,39 @@ func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) *Con
 	return c
 }
 
-func (c *Connection) StartReader() {
+func (c *Connection) startReader() {
 	fmt.Println("Reader Goroutine is running...")
 	defer fmt.Println("connID = ", c.ConnID, " Reader is exit, remote addr is ", c.RemoteAddr().String())
 	defer c.Stop()
 
 	for {
-		buf := make([]byte, utils.GlobalObject.MaxPackageSize)
-		_, err := c.Conn.Read(buf)
-		if err != nil {
-			fmt.Println("recv buf err", err)
-			continue
+		// create pack obj in order to unpack request's msg
+		dp := NewDataPack()
+		// read message header
+		headerData := make([]byte, dp.GetHeadLen())
+		if _, err := io.ReadFull(c.GetTCPConnection(), headerData); err != nil {
+			fmt.Println("read msg header error", err)
+			break
 		}
+		_msg, err := dp.Unpack(headerData)
+		if err != nil {
+			fmt.Println("unpack error", err)
+			break
+		}
+		var data []byte
+		if _msg.GetDataLen() > 0 {
+			data = make([]byte, _msg.GetDataLen())
+			if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
+				fmt.Println("read msg data error", err)
+				break
+			}
+		}
+		_msg.SetData(data)
 
 		// get request
 		req := Request{
 			conn: c,
-			data: buf,
+			msg:  _msg,
 		}
 
 		go func(request ziface.IRequest) {
@@ -56,7 +73,7 @@ func (c *Connection) StartReader() {
 func (c *Connection) Start() {
 	fmt.Println("Conn Start()... ConnID = ", c.ConnID)
 	// Separate the read and write
-	go c.StartReader()
+	go c.startReader()
 	// TODO:: Start Writer
 }
 
@@ -84,6 +101,22 @@ func (c *Connection) RemoteAddr() net.Addr {
 	return c.Conn.RemoteAddr()
 }
 
-func (c *Connection) Send(data []byte) error {
+// pack data before sending to clients
+func (c *Connection) SendMsg(msgId uint32, data []byte) error {
+	if c.isClosed {
+		return errors.New("connection closed when send msg")
+	}
+	// pack the data before sending (Len/ID/Data)
+	dp := NewDataPack()
+	binaryMsg, err := dp.Pack(NetMsgPack(msgId, data))
+	if err != nil {
+		fmt.Println("pack error msg id = ", msgId)
+		return errors.New("pack msg error")
+	}
+	// send binary msg to clients
+	if _, err := c.Conn.Write(binaryMsg); err != nil {
+		fmt.Println("Write msg id ", msgId, " error :", err)
+		return errors.New("conn write error")
+	}
 	return nil
 }
