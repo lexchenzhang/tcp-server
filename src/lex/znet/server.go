@@ -16,8 +16,8 @@ type Server struct {
 	IP string
 	// port
 	Port int
-	// router
-	Router ziface.IRouter
+	// msg handler
+	MsgHandler ziface.IMsgHandler
 }
 
 func (s *Server) Start() {
@@ -36,18 +36,18 @@ func (s *Server) Serve() {
 	select {}
 }
 
-func (s *Server) AddRouter(router ziface.IRouter) {
-	s.Router = router
-	fmt.Println("Router added")
+func (s *Server) AddRouter(msgID uint32, router ziface.IRouter) {
+	s.MsgHandler.AddRouter(msgID, router)
+	fmt.Println("Router added with msgID=", msgID)
 }
 
 func NewServer(name string) ziface.IServer {
 	s := &Server{
-		Name:      utils.GlobalObject.Name,
-		IPVersion: "tcp4",
-		IP:        utils.GlobalObject.Host,
-		Port:      utils.GlobalObject.TcpPort,
-		Router:    nil,
+		Name:       utils.GlobalObject.Name,
+		IPVersion:  "tcp4",
+		IP:         utils.GlobalObject.Host,
+		Port:       utils.GlobalObject.TcpPort,
+		MsgHandler: NewMsgHandler(),
 	}
 	return s
 }
@@ -79,7 +79,7 @@ func clientHanlder(s *Server) {
 		fmt.Println("Accept ", remoteAddr)
 		// connect to client
 		// echo back (512)
-		connHandler := NewConnection(conn, cid, s.Router)
+		connHandler := NewConnection(conn, cid, s.MsgHandler)
 		cid++
 
 		go connHandler.Start()
