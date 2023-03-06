@@ -8,5 +8,5 @@ type IServer interface {
 	// run
 	Serve()
 	// router
-	AddRouter(router IRouter)
+	AddRouter(msdID uint32, router IRouter)
 }
