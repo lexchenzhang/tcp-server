@@ -9,10 +9,12 @@ import (
 )
 
 type Connection struct {
-	Conn       *net.TCPConn
-	ConnID     uint32
-	isClosed   bool
-	ExitChan   chan bool
+	Conn     *net.TCPConn
+	ConnID   uint32
+	isClosed bool
+	ExitChan chan bool
+	// communication between read-goroutin and write-oroutin
+	msgChan    chan []byte
 	MsgHandler ziface.IMsgHandler
 }
 
@@ -22,13 +24,14 @@ func NewConnection(conn *net.TCPConn, connID uint32, msghandler ziface.IMsgHandl
 		ConnID:     connID,
 		MsgHandler: msghandler,
 		isClosed:   false,
+		msgChan:    make(chan []byte),
 		ExitChan:   make(chan bool, 1),
 	}
 	return c
 }
 
 func (c *Connection) startReader() {
-	fmt.Println("Reader Goroutine is running...")
+	fmt.Println("[Reader Goroutine is running]")
 	defer fmt.Println("connID = ", c.ConnID, " Reader is exit, remote addr is ", c.RemoteAddr().String())
 	defer c.Stop()
 
@@ -66,11 +69,29 @@ func (c *Connection) startReader() {
 	}
 }
 
+func (c *Connection) startWriter() {
+	fmt.Println("[Writer Goroutine is running]")
+	defer fmt.Println(c.RemoteAddr().String(), " [conn Writer exit.]")
+	for {
+		select {
+		case data := <-c.msgChan:
+			// data in chan for client
+			if _, err := c.Conn.Write(data); err != nil {
+				fmt.Println("Send data error, ", err)
+				return
+			}
+		case <-c.ExitChan:
+			// reader exited
+			return
+		}
+	}
+}
+
 func (c *Connection) Start() {
 	fmt.Println("Conn Start()... ConnID = ", c.ConnID)
 	// Separate the read and write
 	go c.startReader()
-	// TODO:: Start Writer
+	go c.startWriter()
 }
 
 func (c *Connection) Stop() {
@@ -80,9 +101,10 @@ func (c *Connection) Stop() {
 		return
 	}
 	c.isClosed = true
-
+	c.ExitChan <- true
 	c.Conn.Close()
 	close(c.ExitChan)
+	close(c.msgChan)
 }
 
 func (c *Connection) GetTCPConnection() *net.TCPConn {
@@ -109,10 +131,7 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 		fmt.Println("pack error msg id = ", msgId)
 		return errors.New("pack msg error")
 	}
-	// send binary msg to clients
-	if _, err := c.Conn.Write(binaryMsg); err != nil {
-		fmt.Println("Write msg id ", msgId, " error :", err)
-		return errors.New("conn write error")
-	}
+	// send binary msg to channel
+	c.msgChan <- binaryMsg
 	return nil
 }
