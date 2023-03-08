@@ -31,7 +31,7 @@ func NewConnection(conn *net.TCPConn, connID uint32, msghandler ziface.IMsgHandl
 }
 
 func (c *Connection) startReader() {
-	fmt.Println("Reader Goroutine is running...")
+	fmt.Println("[Reader Goroutine is running]")
 	defer fmt.Println("connID = ", c.ConnID, " Reader is exit, remote addr is ", c.RemoteAddr().String())
 	defer c.Stop()
 
@@ -69,11 +69,29 @@ func (c *Connection) startReader() {
 	}
 }
 
+func (c *Connection) startWriter() {
+	fmt.Println("[Writer Goroutine is running]")
+	defer fmt.Println(c.RemoteAddr().String(), " [conn Writer exit.]")
+	for {
+		select {
+		case data := <-c.msgChan:
+			// data in chan for client
+			if _, err := c.Conn.Write(data); err != nil {
+				fmt.Println("Send data error, ", err)
+				return
+			}
+		case <-c.ExitChan:
+			// reader exited
+			return
+		}
+	}
+}
+
 func (c *Connection) Start() {
 	fmt.Println("Conn Start()... ConnID = ", c.ConnID)
 	// Separate the read and write
 	go c.startReader()
-	// TODO:: Start Writer
+	go c.startWriter()
 }
 
 func (c *Connection) Stop() {
