@@ -101,9 +101,10 @@ func (c *Connection) Stop() {
 		return
 	}
 	c.isClosed = true
-
+	c.ExitChan <- true
 	c.Conn.Close()
 	close(c.ExitChan)
+	close(c.msgChan)
 }
 
 func (c *Connection) GetTCPConnection() *net.TCPConn {
@@ -130,10 +131,7 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 		fmt.Println("pack error msg id = ", msgId)
 		return errors.New("pack msg error")
 	}
-	// send binary msg to clients
-	if _, err := c.Conn.Write(binaryMsg); err != nil {
-		fmt.Println("Write msg id ", msgId, " error :", err)
-		return errors.New("conn write error")
-	}
+	// send binary msg to channel
+	c.msgChan <- binaryMsg
 	return nil
 }
