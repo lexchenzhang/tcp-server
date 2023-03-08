@@ -9,10 +9,12 @@ import (
 )
 
 type Connection struct {
-	Conn       *net.TCPConn
-	ConnID     uint32
-	isClosed   bool
-	ExitChan   chan bool
+	Conn     *net.TCPConn
+	ConnID   uint32
+	isClosed bool
+	ExitChan chan bool
+	// communication between read-goroutin and write-oroutin
+	msgChan    chan []byte
 	MsgHandler ziface.IMsgHandler
 }
 
@@ -22,6 +24,7 @@ func NewConnection(conn *net.TCPConn, connID uint32, msghandler ziface.IMsgHandl
 		ConnID:     connID,
 		MsgHandler: msghandler,
 		isClosed:   false,
+		msgChan:    make(chan []byte),
 		ExitChan:   make(chan bool, 1),
 	}
 	return c

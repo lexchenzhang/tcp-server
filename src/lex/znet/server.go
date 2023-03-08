@@ -78,7 +78,6 @@ func clientHanlder(s *Server) {
 		var remoteAddr = conn.RemoteAddr()
 		fmt.Println("Accept ", remoteAddr)
 		// connect to client
-		// echo back (512)
 		connHandler := NewConnection(conn, cid, s.MsgHandler)
 		cid++
 
