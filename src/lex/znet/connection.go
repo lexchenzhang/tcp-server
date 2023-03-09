@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"tcp-server/src/lex/utils"
 	"tcp-server/src/lex/ziface"
 )
 
@@ -65,7 +66,12 @@ func (c *Connection) startReader() {
 			msg:  _msg,
 		}
 
-		go c.MsgHandler.DoMsgHandler(&req)
+		if utils.GlobalObject.WorkerPoolSize > 0 {
+			c.MsgHandler.SendMsgToTaskQueue(&req)
+		} else {
+			go c.MsgHandler.DoMsgHandler(&req)
+		}
+
 	}
 }
 
