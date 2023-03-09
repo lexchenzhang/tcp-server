@@ -53,7 +53,13 @@ func (mh *MsgHandler) startSingleWorker(id int) {
 	for {
 		select {
 		case request := <-mh.TaskQueue[id]:
+			fmt.Println("grab form task queue and workerID=", id)
 			mh.DoMsgHandler(request)
 		}
 	}
+}
+
+func (mh *MsgHandler) SendMsgToTaskQueue(request ziface.IRequest) {
+	workderID := request.GetConnection().GetConnID() % mh.WorkerPoolSize
+	mh.TaskQueue[workderID] <- request
 }
