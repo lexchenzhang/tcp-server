@@ -1,6 +1,6 @@
 {
-    "Name": "demo server v0.7",
-    "Version": "v-0.7",
+    "Name": "demo server v0.8",
+    "Version": "v-0.8",
     "Host": "127.0.0.1",
     "TcpPort": 8999,
     "MaxConn": 1024,

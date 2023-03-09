@@ -18,6 +18,12 @@ type Server struct {
 	Port int
 	// msg handler
 	MsgHandler ziface.IMsgHandler
+	// conn manager
+	ConnMgr ziface.IConnManager
+	// Hook - trigger after conn
+	OnConnStart func(conn ziface.IConnection)
+	// Hook - trigger before disconn
+	OnConnStop func(conn ziface.IConnection)
 }
 
 func (s *Server) Start() {
@@ -28,6 +34,8 @@ func (s *Server) Start() {
 
 func (s *Server) Stop() {
 	// TODO :: release or GC
+	fmt.Println("[STOP] Zinx server name ", s.Name)
+	s.ConnMgr.ClearConn()
 }
 
 func (s *Server) Serve() {
@@ -41,6 +49,10 @@ func (s *Server) AddRouter(msgID uint32, router ziface.IRouter) {
 	fmt.Println("Router added with msgID=", msgID)
 }
 
+func (s *Server) GetConnMgr() ziface.IConnManager {
+	return s.ConnMgr
+}
+
 func NewServer(name string) ziface.IServer {
 	s := &Server{
 		Name:       utils.GlobalObject.Name,
@@ -48,6 +60,7 @@ func NewServer(name string) ziface.IServer {
 		IP:         utils.GlobalObject.Host,
 		Port:       utils.GlobalObject.TcpPort,
 		MsgHandler: NewMsgHandler(),
+		ConnMgr:    NewConnManager(),
 	}
 	return s
 }
@@ -77,12 +90,43 @@ func clientHanlder(s *Server) {
 			fmt.Println("Accept err", err)
 			continue
 		}
+		if s.ConnMgr.Len() > utils.GlobalObject.MaxConn {
+			fmt.Println("too many connections MaxConn=", utils.GlobalObject.MaxConn)
+			conn.Close()
+			continue
+		}
 		var remoteAddr = conn.RemoteAddr()
 		fmt.Println("Accept ", remoteAddr)
 		// connect to client
-		connHandler := NewConnection(conn, cid, s.MsgHandler)
+		connHandler := NewConnection(s, conn, cid, s.MsgHandler)
 		cid++
 
 		go connHandler.Start()
+	}
+}
+
+// register OnConnStart
+func (s *Server) SetOnConnStart(hookFunc func(conn ziface.IConnection)) {
+	s.OnConnStart = hookFunc
+}
+
+// register OnConnStop
+func (s *Server) SetOnConnStop(hookFunc func(conn ziface.IConnection)) {
+	s.OnConnStop = hookFunc
+}
+
+// trigger OnConnStart
+func (s *Server) CallOnConnStart(conn ziface.IConnection) {
+	if s.OnConnStart != nil {
+		fmt.Println("-> Call OnConnStart()")
+		s.OnConnStart(conn)
+	}
+}
+
+// trigger OnConnStop
+func (s *Server) CallOnConnStop(conn ziface.IConnection) {
+	if s.OnConnStop != nil {
+		fmt.Println("-> Call OnConnStop()")
+		s.OnConnStop(conn)
 	}
 }

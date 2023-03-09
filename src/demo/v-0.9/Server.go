@@ -36,7 +36,16 @@ func (hr *HiRouter) Handle(request ziface.IRequest) {
 }
 
 func main() {
-	s := znet.NewServer("[server v0.8]")
+	s := znet.NewServer("[server v0.9]")
+	// register hook func
+	s.SetOnConnStart(func(conn ziface.IConnection) {
+		fmt.Println("user's on conn start....")
+		err := conn.SendMsg(202, []byte("special pkg on start"))
+		if err != nil {
+			fmt.Println(err)
+		}
+	})
+	s.SetOnConnStop(func(conn ziface.IConnection) { fmt.Println("user's on conn stop....") })
 	s.AddRouter(0, &PingRouter{})
 	s.AddRouter(1, &HiRouter{})
 	s.Serve()
