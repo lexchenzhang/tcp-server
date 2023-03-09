@@ -101,6 +101,8 @@ func (c *Connection) Start() {
 	// Separate the read and write
 	go c.startReader()
 	go c.startWriter()
+	// call framework user's hook func OnConnStart after new connection
+	c.TcpServer.CallOnConnStart(c)
 }
 
 func (c *Connection) Stop() {
@@ -111,6 +113,8 @@ func (c *Connection) Stop() {
 	}
 	c.isClosed = true
 	c.ExitChan <- true
+	// call framework user's hook func OnConnStart before disconnect
+	c.TcpServer.CallOnConnStop(c)
 	c.Conn.Close()
 	c.TcpServer.GetConnMgr().Remove(c)
 	close(c.ExitChan)

@@ -20,6 +20,10 @@ type Server struct {
 	MsgHandler ziface.IMsgHandler
 	// conn manager
 	ConnMgr ziface.IConnManager
+	// Hook - trigger after conn
+	OnConnStart func(conn ziface.IConnection)
+	// Hook - trigger before disconn
+	OnConnStop func(conn ziface.IConnection)
 }
 
 func (s *Server) Start() {
@@ -98,5 +102,31 @@ func clientHanlder(s *Server) {
 		cid++
 
 		go connHandler.Start()
+	}
+}
+
+// register OnConnStart
+func (s *Server) SetOnConnStart(hookFunc func(conn ziface.IConnection)) {
+	s.OnConnStart = hookFunc
+}
+
+// register OnConnStop
+func (s *Server) SetOnConnStop(hookFunc func(conn ziface.IConnection)) {
+	s.OnConnStop = hookFunc
+}
+
+// trigger OnConnStart
+func (s *Server) CallOnConnStart(conn ziface.IConnection) {
+	if s.OnConnStart != nil {
+		fmt.Println("-> Call OnConnStart()")
+		s.OnConnStart(conn)
+	}
+}
+
+// trigger OnConnStop
+func (s *Server) CallOnConnStop(conn ziface.IConnection) {
+	if s.OnConnStop != nil {
+		fmt.Println("-> Call OnConnStop()")
+		s.OnConnStop(conn)
 	}
 }
