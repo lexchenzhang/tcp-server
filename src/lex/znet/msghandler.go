@@ -3,16 +3,21 @@ package znet
 import (
 	"fmt"
 	"strconv"
+	"tcp-server/src/lex/utils"
 	"tcp-server/src/lex/ziface"
 )
 
 type MsgHandler struct {
-	APIs map[uint32]ziface.IRouter
+	APIs           map[uint32]ziface.IRouter
+	TaskQueue      []chan ziface.IRequest
+	WorkerPoolSize uint32
 }
 
 func NewMsgHandler() *MsgHandler {
 	return &MsgHandler{
-		APIs: make(map[uint32]ziface.IRouter),
+		APIs:           make(map[uint32]ziface.IRouter),
+		WorkerPoolSize: utils.GlobalObject.WorkerPoolSize,
+		TaskQueue:      make([]chan ziface.IRequest, utils.GlobalObject.MaxWorkerTaskSize),
 	}
 }
 

@@ -13,21 +13,25 @@ type GlobalObj struct {
 	TcpPort   int
 	Name      string
 	// Zinx
-	Version        string
-	MaxConn        int
-	MaxPackageSize uint32
+	Version           string
+	MaxConn           int
+	MaxPackageSize    uint32
+	WorkerPoolSize    uint32
+	MaxWorkerTaskSize uint32
 }
 
 var GlobalObject *GlobalObj
 
 func init() {
 	GlobalObject = &GlobalObj{
-		Name:           "ZinxServerApp",
-		Version:        "v0.4",
-		TcpPort:        8999,
-		Host:           "0.0.0.0",
-		MaxConn:        1024,
-		MaxPackageSize: 4096,
+		Name:              "ZinxServerApp",
+		Version:           "v0.4",
+		TcpPort:           8999,
+		Host:              "0.0.0.0",
+		MaxConn:           1024,
+		MaxPackageSize:    4096,
+		WorkerPoolSize:    10,
+		MaxWorkerTaskSize: 512,
 	}
 
 	// read config file
