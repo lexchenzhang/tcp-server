@@ -9,4 +9,6 @@ type IServer interface {
 	Serve()
 	// router
 	AddRouter(msdID uint32, router IRouter)
+	// get conn manager
+	GetConnMgr() IConnManager
 }

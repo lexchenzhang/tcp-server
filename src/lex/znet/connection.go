@@ -10,17 +10,19 @@ import (
 )
 
 type Connection struct {
-	Conn     *net.TCPConn
-	ConnID   uint32
-	isClosed bool
-	ExitChan chan bool
+	TcpServer ziface.IServer
+	Conn      *net.TCPConn
+	ConnID    uint32
+	isClosed  bool
+	ExitChan  chan bool
 	// communication between read-goroutin and write-oroutin
 	msgChan    chan []byte
 	MsgHandler ziface.IMsgHandler
 }
 
-func NewConnection(conn *net.TCPConn, connID uint32, msghandler ziface.IMsgHandler) *Connection {
+func NewConnection(s ziface.IServer, conn *net.TCPConn, connID uint32, msghandler ziface.IMsgHandler) *Connection {
 	c := &Connection{
+		TcpServer:  s,
 		Conn:       conn,
 		ConnID:     connID,
 		MsgHandler: msghandler,
@@ -28,6 +30,7 @@ func NewConnection(conn *net.TCPConn, connID uint32, msghandler ziface.IMsgHandl
 		msgChan:    make(chan []byte),
 		ExitChan:   make(chan bool, 1),
 	}
+	c.TcpServer.GetConnMgr().Add(c)
 	return c
 }
 
@@ -109,6 +112,7 @@ func (c *Connection) Stop() {
 	c.isClosed = true
 	c.ExitChan <- true
 	c.Conn.Close()
+	c.TcpServer.GetConnMgr().Remove(c)
 	close(c.ExitChan)
 	close(c.msgChan)
 }
