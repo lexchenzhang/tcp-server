@@ -17,7 +17,7 @@ func NewMsgHandler() *MsgHandler {
 	return &MsgHandler{
 		APIs:           make(map[uint32]ziface.IRouter),
 		WorkerPoolSize: utils.GlobalObject.WorkerPoolSize,
-		TaskQueue:      make([]chan ziface.IRequest, utils.GlobalObject.MaxWorkerTaskSize),
+		TaskQueue:      make([]chan ziface.IRequest, utils.GlobalObject.WorkerPoolSize),
 	}
 }
 
@@ -39,4 +39,21 @@ func (mh *MsgHandler) AddRouter(msgID uint32, router ziface.IRouter) {
 	}
 	mh.APIs[msgID] = router
 	fmt.Println("Add API MsgID=", msgID, " succ!")
+}
+
+// start worker pool only once
+func (mh *MsgHandler) StartWorkerPool() {
+	for i := 0; i < int(mh.WorkerPoolSize); i++ {
+		mh.TaskQueue[i] = make(chan ziface.IRequest, utils.GlobalObject.MaxWorkerTaskSize)
+		go mh.startSingleWorker(i)
+	}
+}
+
+func (mh *MsgHandler) startSingleWorker(id int) {
+	for {
+		select {
+		case request := <-mh.TaskQueue[id]:
+			mh.DoMsgHandler(request)
+		}
+	}
 }
