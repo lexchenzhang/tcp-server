@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"tcp-server/src/lex/utils"
 	"tcp-server/src/lex/ziface"
 )
@@ -16,8 +17,10 @@ type Connection struct {
 	isClosed  bool
 	ExitChan  chan bool
 	// communication between read-goroutin and write-oroutin
-	msgChan    chan []byte
-	MsgHandler ziface.IMsgHandler
+	msgChan      chan []byte
+	MsgHandler   ziface.IMsgHandler
+	property     map[string]interface{}
+	propertyLock sync.RWMutex
 }
 
 func NewConnection(s ziface.IServer, conn *net.TCPConn, connID uint32, msghandler ziface.IMsgHandler) *Connection {
@@ -29,6 +32,7 @@ func NewConnection(s ziface.IServer, conn *net.TCPConn, connID uint32, msghandle
 		isClosed:   false,
 		msgChan:    make(chan []byte),
 		ExitChan:   make(chan bool, 1),
+		property:   make(map[string]interface{}),
 	}
 	c.TcpServer.GetConnMgr().Add(c)
 	return c
@@ -148,4 +152,26 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 	// send binary msg to channel
 	c.msgChan <- binaryMsg
 	return nil
+}
+
+func (c *Connection) SetProperty(key string, value interface{}) {
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+	c.property[key] = value
+}
+
+func (c *Connection) GetProperty(key string) (interface{}, error) {
+	c.propertyLock.RLock()
+	defer c.propertyLock.RUnlock()
+	if value, ok := c.property[key]; ok {
+		return value, nil
+	} else {
+		return nil, errors.New("no property found")
+	}
+}
+
+func (c *Connection) RemoveProperty(key string) {
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+	delete(c.property, key)
 }
